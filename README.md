@@ -1,73 +1,84 @@
-# React + TypeScript + Vite
+# Straum
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Development is not yet complete.** This repository is an active work in progress. The landing site and in-browser app shell are functional UI prototypes; real peer-to-peer networking, encryption, and file transfer are not implemented yet.
 
-Currently, two official plugins are available:
+## What is Straum?
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Straum (*Old Norse: stream, current*) is intended to be a **direct peer-to-peer** communication app: chat, voice/video calls, and file sharing between devices **without** a central server, user accounts, or metadata collection in the path.
 
-## React Compiler
+The goal is simple: **direct connections between people — nothing in between.**
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## What the app can do today
 
-## Expanding the ESLint configuration
+| Area | Status |
+|------|--------|
+| Marketing / product site | Landing page with hero, how-it-works, features, security FAQ, and open-source section |
+| Theme | Light / dark mode with persisted preference |
+| App shell (demo) | Full-screen UI opened from “Open app”: peer list, pairing flow (simulated), and chat (local mock data) |
+| Pairing UI | Generates handshake-style codes, copy/regenerate, simulated connection phases |
+| Chat UI | Thread view and send messages against in-memory seed peers (not sent over the network) |
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Nothing in the current build establishes real WebRTC sessions, encrypts traffic with Signal Protocol, or transfers files. Treat the app shell as **UX and layout preview only**.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Planned future features
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- **Real P2P connectivity** — WebRTC data channels for direct device-to-device links after handshake
+- **End-to-end encrypted chat** — Signal Protocol (or equivalent) for message encryption and key exchange
+- **Video and voice calls** — WebRTC media streams without a relay in the data path where possible
+- **P2P file sharing** — Direct file transfer (e.g. WebTorrent-style) between peers
+- **Cryptographic identity** — Device fingerprints and verified peer trust, stored locally
+- **Minimal signalling** — Only what is needed for NAT traversal; no long-lived server in the message path
+- **Open source release** — Public repository, reproducible builds, and third-party security review
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Priorities and scope may change as development continues.
+
+## Technologies used in development
+
+| Technology | Role |
+|------------|------|
+| [React](https://react.dev/) | UI framework |
+| [TypeScript](https://www.typescriptlang.org/) | Typed application code |
+| [Vite](https://vite.dev/) | Dev server and production bundler |
+| [Tailwind CSS](https://tailwindcss.com/) | Utility-first styling (v4 via `@tailwindcss/vite`) |
+| [shadcn/ui](https://ui.shadcn.com/) | Component patterns built on Radix UI primitives |
+| [Radix UI](https://www.radix-ui.com/) | Accessible primitives (accordion, dialog, select, slot) |
+| [class-variance-authority](https://cva.style/) | Component variant styling |
+| [clsx](https://github.com/lukeed/clsx) / [tailwind-merge](https://github.com/dcastil/tailwind-merge) | Conditional and merged class names |
+| [Lucide React](https://lucide.dev/) | Icons used by shadcn-style components |
+| [ESLint](https://eslint.org/) + [typescript-eslint](https://typescript-eslint.io/) | Linting |
+
+Fonts loaded at runtime: **Inter** and **JetBrains Mono** (Google Fonts).
+
+## Getting started
+
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Other scripts:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run build    # Type-check and production build
+npm run preview  # Preview production build
+npm run lint     # Run ESLint
 ```
+
+## Project structure
+
+```
+src/
+├── components/
+│   ├── ui/           # shadcn-style primitives
+│   ├── landing/      # Marketing sections
+│   ├── layout/       # Header, footer
+│   └── app-shell/    # Demo P2P app UI
+├── hooks/
+├── lib/
+├── App.tsx
+└── main.tsx
+```
+
+## License
+
+To be determined when the project is ready for public release.
