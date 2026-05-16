@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type Dispatch, type FormEvent, type SetStateAction } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge, BadgeDot } from '@/components/ui/badge'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Icons, StraumLogo } from '@/components/icons'
 import { Wordmark } from '@/components/wordmark'
+import { normalizeHandshakeCode } from '@/lib/handshake'
 import { AppHome } from './app-home'
-import { PairPanel } from './pair-panel'
+import { PairPanel, type PairMode, type Phase } from './pair-panel'
 import { ChatView } from './chat-view'
 import { PeerAvatar } from './peer-avatar'
 import {
@@ -18,11 +19,24 @@ import {
 } from '@/lib/peer-data'
 
 type View = 'home' | 'pair' | 'chat'
-type Phase = 'waiting' | 'connecting' | 'connected'
 
 interface AppShellProps {
   open: boolean
   onClose: () => void
+}
+
+function addFreshPeer(setPeers: Dispatch<SetStateAction<Peer[]>>) {
+  const newPeer: Peer = {
+    id: 'np-' + Math.random().toString(36).slice(2, 8),
+    name: 'New peer',
+    fp: genFingerprint(),
+    status: 'online',
+    last: 'Just connected.',
+    when: 'now',
+    unread: 0,
+    fresh: true,
+  }
+  setPeers((ps) => (ps.some((p) => p.fresh) ? ps : [newPeer, ...ps]))
 }
 
 export function AppShell({ open, onClose }: AppShellProps) {
@@ -30,6 +44,9 @@ export function AppShell({ open, onClose }: AppShellProps) {
   const [fp] = useState(genFingerprint)
   const [copied, setCopied] = useState(false)
   const [phase, setPhase] = useState<Phase>('waiting')
+  const [pairMode, setPairMode] = useState<PairMode>('create')
+  const [acceptInput, setAcceptInput] = useState('')
+  const [acceptError, setAcceptError] = useState<string | null>(null)
   const [view, setView] = useState<View>('home')
   const [activePeerId, setActivePeerId] = useState<string | null>(null)
   const [peers, setPeers] = useState<Peer[]>(SEED_PEERS)
@@ -37,38 +54,53 @@ export function AppShell({ open, onClose }: AppShellProps) {
   const [draft, setDraft] = useState('')
   const exitRef = useRef<HTMLButtonElement>(null)
 
-  useEffect(() => {
-    if (view === 'pair') {
-      setCode(genCode())
-      setCopied(false)
-      setPhase('waiting')
-    }
-  }, [view])
+  const resetPairState = useCallback(() => {
+    setCode(genCode())
+    setCopied(false)
+    setPhase('waiting')
+    setPairMode('create')
+    setAcceptInput('')
+    setAcceptError(null)
+  }, [])
 
   useEffect(() => {
-    if (!open || view !== 'pair' || phase !== 'waiting') return
+    if (view === 'pair') resetPairState()
+  }, [view, resetPairState])
+
+  const startConnecting = useCallback(() => {
+    setPhase('connecting')
+  }, [])
+
+  // Create mode: auto-start connection after peer "receives" the code
+  useEffect(() => {
+    if (!open || view !== 'pair' || pairMode !== 'create' || phase !== 'waiting') return
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (reduce) return
-    const t1 = setTimeout(() => setPhase('connecting'), 3800)
-    const t2 = setTimeout(() => {
+    const t = setTimeout(() => startConnecting(), 3800)
+    return () => clearTimeout(t)
+  }, [open, view, pairMode, phase, startConnecting, code])
+
+  // Finish connection once in connecting phase
+  useEffect(() => {
+    if (!open || view !== 'pair' || phase !== 'connecting') return
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const delay = reduce ? 0 : 2000
+    const t = setTimeout(() => {
       setPhase('connected')
-      const newPeer: Peer = {
-        id: 'np-' + Math.random().toString(36).slice(2, 8),
-        name: 'New peer',
-        fp: genFingerprint(),
-        status: 'online',
-        last: 'Just connected.',
-        when: 'now',
-        unread: 0,
-        fresh: true,
-      }
-      setPeers((ps) => (ps.some((p) => p.fresh) ? ps : [newPeer, ...ps]))
-    }, 5800)
-    return () => {
-      clearTimeout(t1)
-      clearTimeout(t2)
-    }
+      addFreshPeer(setPeers)
+    }, delay)
+    return () => clearTimeout(t)
   }, [open, view, phase])
+
+  const handlePairModeChange = (mode: PairMode) => {
+    setPairMode(mode)
+    setPhase('waiting')
+    setAcceptError(null)
+    if (mode === 'create') {
+      setCode(genCode())
+      setCopied(false)
+    }
+  }
 
   const copyCode = async () => {
     try {
@@ -78,6 +110,17 @@ export function AppShell({ open, onClose }: AppShellProps) {
     } catch {
       /* ignore */
     }
+  }
+
+  const handleAccept = () => {
+    const normalized = normalizeHandshakeCode(acceptInput)
+    if (!normalized) {
+      setAcceptError('Enter a valid handshake code (e.g. kjr-29f-tr8) or paste the full straum:// link.')
+      return
+    }
+    setAcceptError(null)
+    setAcceptInput(normalized)
+    startConnecting()
   }
 
   const openChat = (id: string) => {
@@ -208,14 +251,23 @@ export function AppShell({ open, onClose }: AppShellProps) {
             {view === 'home' && <AppHome peers={peers} onPair={() => setView('pair')} onOpenChat={openChat} />}
             {view === 'pair' && (
               <PairPanel
+                pairMode={pairMode}
+                onPairModeChange={handlePairModeChange}
                 code={code}
                 copied={copied}
                 phase={phase}
+                acceptInput={acceptInput}
+                acceptError={acceptError}
+                onAcceptInputChange={(v) => {
+                  setAcceptInput(v)
+                  if (acceptError) setAcceptError(null)
+                }}
                 onCopy={copyCode}
                 onRegen={() => {
                   setCode(genCode())
                   setPhase('waiting')
                 }}
+                onAccept={handleAccept}
                 onCancel={() => setView('home')}
                 onEnter={() => setView('home')}
               />

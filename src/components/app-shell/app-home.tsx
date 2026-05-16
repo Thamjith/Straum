@@ -33,7 +33,7 @@ export function AppHome({ peers, onPair, onOpenChat }: AppHomeProps) {
               <Icons.link size={22} />
             </div>
             <div className="mt-4 text-base font-semibold tracking-tight">Pair a peer</div>
-            <div className="mt-1 text-[13px] text-[var(--fg-muted)]">Generate a handshake code. Share it. They paste it.</div>
+            <div className="mt-1 text-[13px] text-[var(--fg-muted)]">Create a code and QR, or accept theirs.</div>
           </Card>
         </button>
         <button type="button" onClick={() => online[0] && onOpenChat(online[0].id)} disabled={!online.length} className="text-start disabled:cursor-not-allowed disabled:opacity-50">
