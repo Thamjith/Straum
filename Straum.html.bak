@@ -1,0 +1,1542 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="Straum — direct peer-to-peer chat, calls and file sharing. No servers. No accounts. No metadata." />
+<meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)" />
+<title>Straum — Direct. Nothing in between.</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+        },
+        colors: {
+          accent: {
+            DEFAULT: 'oklch(0.62 0.09 200)',
+            soft: 'oklch(0.62 0.09 200 / 0.12)',
+            ink:  'oklch(0.42 0.08 200)',
+          },
+        },
+        letterSpacing: {
+          tightest: '-0.045em',
+        },
+      },
+    },
+  };
+</script>
+
+<style>
+  :root {
+    --bg: #fafafa;
+    --bg-elev: #ffffff;
+    --fg: #0a0a0a;
+    --fg-muted: #52525b;     /* zinc-600 */
+    --fg-subtle: #71717a;    /* zinc-500 */
+    --line: #e4e4e7;         /* zinc-200 */
+    --line-strong: #d4d4d8;  /* zinc-300 */
+    --accent: oklch(0.62 0.09 200);
+    --accent-ink: oklch(0.42 0.08 200);
+    --accent-soft: oklch(0.62 0.09 200 / 0.12);
+    --ring: oklch(0.62 0.09 200 / 0.45);
+  }
+  .dark {
+    --bg: #0a0a0a;
+    --bg-elev: #141414;
+    --fg: #fafafa;
+    --fg-muted: #a1a1aa;     /* zinc-400 */
+    --fg-subtle: #71717a;    /* zinc-500 */
+    --line: #27272a;         /* zinc-800 */
+    --line-strong: #3f3f46;  /* zinc-700 */
+    --accent: oklch(0.74 0.10 200);
+    --accent-ink: oklch(0.88 0.06 200);
+    --accent-soft: oklch(0.74 0.10 200 / 0.16);
+    --ring: oklch(0.74 0.10 200 / 0.55);
+  }
+
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Focus rings */
+  :where(a, button, [role="button"], summary, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  /* Skip link */
+  .skip-link {
+    position: absolute;
+    inset-inline-start: 1rem;
+    inset-block-start: 1rem;
+    transform: translateY(-150%);
+    background: var(--fg);
+    color: var(--bg);
+    padding: 0.5rem 0.875rem;
+    border-radius: 8px;
+    font-weight: 600;
+    z-index: 100;
+    transition: transform 0.15s ease;
+  }
+  .skip-link:focus { transform: translateY(0); }
+
+  /* Reveal-on-scroll */
+  .reveal {
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 600ms ease, transform 600ms ease;
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+  .reveal.is-visible { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+  }
+
+  /* Flow line animation in hero */
+  .flow-dash {
+    stroke-dasharray: 6 10;
+    animation: flow 2.4s linear infinite;
+  }
+  .flow-pulse {
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes flow {
+    to { stroke-dashoffset: -64; }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.0; transform: translateX(-50%); }
+    50%      { opacity: 1.0; transform: translateX(50%); }
+  }
+
+  /* Wordmark — a tightened, confident treatment */
+  .wordmark {
+    font-weight: 700;
+    letter-spacing: -0.045em;
+    font-feature-settings: "ss01", "cv11", "cv05";
+  }
+
+  /* Section dividers — hairline, no shadows */
+  .hairline-b { border-block-end: 1px solid var(--line); }
+  .hairline-t { border-block-start: 1px solid var(--line); }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    border-radius: 9px;
+    font-weight: 500;
+    font-size: 0.9375rem;
+    line-height: 1;
+    transition: background-color 150ms, color 150ms, border-color 150ms, transform 150ms;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: var(--fg);
+    color: var(--bg);
+  }
+  .btn-primary:hover { background: color-mix(in oklab, var(--fg) 86%, transparent); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--fg);
+    border-color: var(--line-strong);
+  }
+  .btn-ghost:hover { background: color-mix(in oklab, var(--fg) 5%, transparent); }
+
+  /* Card */
+  .card {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+  }
+
+  /* Accordion */
+  details.acc {
+    border-block-end: 1px solid var(--line);
+  }
+  details.acc:first-of-type { border-block-start: 1px solid var(--line); }
+  details.acc > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 1.25rem 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    font-weight: 500;
+    font-size: 1rem;
+  }
+  details.acc > summary::-webkit-details-marker { display: none; }
+  details.acc > summary .chev {
+    transition: transform 200ms ease;
+    color: var(--fg-subtle);
+    flex: none;
+  }
+  details.acc[open] > summary .chev { transform: rotate(45deg); color: var(--fg); }
+  details.acc > .acc-body {
+    padding: 0 0.25rem 1.5rem;
+    color: var(--fg-muted);
+    max-width: 65ch;
+    line-height: 1.65;
+  }
+
+  /* Tooltip */
+  .tt {
+    position: relative;
+  }
+  .tt:hover .tt-content,
+  .tt:focus-within .tt-content {
+    opacity: 1;
+    transform: translate(-50%, -2px);
+    pointer-events: auto;
+  }
+  .tt-content {
+    position: absolute;
+    inset-block-end: calc(100% + 8px);
+    inset-inline-start: 50%;
+    transform: translate(-50%, 4px);
+    background: var(--fg);
+    color: var(--bg);
+    font-size: 0.75rem;
+    padding: 0.375rem 0.5rem;
+    border-radius: 6px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 150ms ease, transform 150ms ease;
+    z-index: 30;
+    font-family: "JetBrains Mono", monospace;
+  }
+
+  /* Selection */
+  ::selection { background: var(--accent-soft); color: var(--fg); }
+
+  /* Mark badge */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: var(--bg-elev);
+    color: var(--fg-muted);
+    font-size: 0.75rem;
+    font-family: "JetBrains Mono", monospace;
+  }
+  .badge .dot {
+    width: 6px; height: 6px; border-radius: 999px;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  /* RTL-friendly arrows in stepper */
+  [dir="rtl"] .stepper-arrow { transform: scaleX(-1); }
+
+  /* Hide Google Translate banner */
+  .goog-te-banner-frame, .skiptranslate { display: none !important; }
+  body { top: 0 !important; }
+  .goog-te-gadget { font-size: 0 !important; }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+
+<body>
+  <a href="#main" class="skip-link">Skip to content</a>
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="react">
+  const { useEffect, useState, useRef, useCallback } = React;
+
+  // ---------- Hooks ----------
+  function useTheme() {
+    const [theme, setTheme] = useState(() => {
+      if (typeof window === 'undefined') return 'light';
+      const stored = localStorage.getItem('straum-theme');
+      if (stored === 'light' || stored === 'dark') return stored;
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    });
+    useEffect(() => {
+      document.documentElement.classList.toggle('dark', theme === 'dark');
+      localStorage.setItem('straum-theme', theme);
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'dark' ? '#0a0a0a' : '#fafafa');
+    }, [theme]);
+    useEffect(() => {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)');
+      const handler = (e) => {
+        if (!localStorage.getItem('straum-theme-explicit')) {
+          setTheme(e.matches ? 'dark' : 'light');
+        }
+      };
+      mq.addEventListener('change', handler);
+      return () => mq.removeEventListener('change', handler);
+    }, []);
+    return [theme, (t) => { localStorage.setItem('straum-theme-explicit', '1'); setTheme(t); }];
+  }
+
+  function useReveal() {
+    useEffect(() => {
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const els = document.querySelectorAll('.reveal');
+      if (reduce || !('IntersectionObserver' in window)) {
+        els.forEach(el => el.classList.add('is-visible'));
+        return;
+      }
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            e.target.classList.add('is-visible');
+            io.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+      els.forEach(el => io.observe(el));
+      return () => io.disconnect();
+    }, []);
+  }
+
+  // ---------- Icons (line-art, currentColor) ----------
+  const Icon = ({ d, label, size = 20, stroke = 1.5, children }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round"
+         role={label ? 'img' : 'presentation'} aria-label={label || undefined} aria-hidden={label ? undefined : true}>
+      {children || <path d={d} />}
+    </svg>
+  );
+
+  const Icons = {
+    // Trust bar
+    server: (p) => <Icon {...p} label={p.label}><rect x="3" y="4" width="18" height="6" rx="1.5" /><rect x="3" y="14" width="18" height="6" rx="1.5" /><line x1="6.5" y1="7" x2="6.5" y2="7" /><line x1="6.5" y1="17" x2="6.5" y2="17" /><line x1="4" y1="12" x2="20" y2="12" strokeDasharray="2 3" /></Icon>,
+    user:   (p) => <Icon {...p} label={p.label}><circle cx="12" cy="8" r="3.5" /><path d="M5 20c0-3.6 3.1-6.5 7-6.5s7 2.9 7 6.5" /></Icon>,
+    eye:    (p) => <Icon {...p} label={p.label}><path d="M2.5 12s3.5-7 9.5-7 9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Z" /><circle cx="12" cy="12" r="2.5" /></Icon>,
+    code:   (p) => <Icon {...p} label={p.label}><polyline points="8 6 3 12 8 18" /><polyline points="16 6 21 12 16 18" /><line x1="14" y1="4" x2="10" y2="20" /></Icon>,
+    // How it works
+    share:  (p) => <Icon {...p} label={p.label}><rect x="3.5" y="7" width="17" height="11" rx="2" /><path d="M7 11.5h4M7 14h7" /></Icon>,
+    link:   (p) => <Icon {...p} label={p.label}><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1.5 1.5" /><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1.5-1.5" /></Icon>,
+    chat:   (p) => <Icon {...p} label={p.label}><path d="M21 12a8 8 0 1 1-3.2-6.4L21 4l-1 4.5A8 8 0 0 1 21 12Z" /><path d="M8.5 12h7M8.5 9h5" /></Icon>,
+    // Features
+    lock:   (p) => <Icon {...p} label={p.label}><rect x="4.5" y="10" width="15" height="10" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></Icon>,
+    file:   (p) => <Icon {...p} label={p.label}><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" /><polyline points="14 3 14 8 19 8" /></Icon>,
+    video:  (p) => <Icon {...p} label={p.label}><rect x="3" y="6" width="13" height="12" rx="2" /><polygon points="22 8 16 12 22 16 22 8" /></Icon>,
+    bolt:   (p) => <Icon {...p} label={p.label}><polygon points="13 2 4 14 11 14 10 22 20 9 13 9 13 2" /></Icon>,
+    // UI
+    sun:    (p) => <Icon {...p} label={p.label}><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.41M17.66 6.34l1.41-1.42" /></Icon>,
+    moon:   (p) => <Icon {...p} label={p.label}><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" /></Icon>,
+    arrow:  (p) => <Icon {...p} label={p.label}><line x1="5" y1="12" x2="19" y2="12" /><polyline points="13 6 19 12 13 18" /></Icon>,
+    plus:   (p) => <Icon {...p} size={18} label={p.label}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></Icon>,
+    github: (p) => <Icon {...p} label={p.label}><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.1-1.47-1.1-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.35 1.08 2.92.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.1.39-1.99 1.03-2.69-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.6 9.6 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.69 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2Z" /></Icon>,
+    globe:  (p) => <Icon {...p} label={p.label}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></Icon>,
+  };
+
+  // ---------- Wordmark ----------
+  const Wordmark = ({ size = 'lg' }) => {
+    const sizes = {
+      sm: 'text-xl',
+      md: 'text-2xl',
+      lg: 'text-3xl',
+      xl: 'text-[clamp(4.5rem,12vw,9.5rem)] leading-[0.85]',
+    };
+    return (
+      <span className={`wordmark notranslate ${sizes[size]}`} translate="no">Straum</span>
+    );
+  };
+
+  // ---------- App shell (the actual P2P app home page) ----------
+  function genCode() {
+    const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
+    const group = () => Array.from({ length: 3 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('');
+    return `${group()}-${group()}-${group()}`;
+  }
+  function genFingerprint() {
+    const hex = '0123456789abcdef';
+    const g = (n) => Array.from({ length: n }, () => hex[Math.floor(Math.random() * 16)]).join('');
+    return `${g(4)}·${g(4)}·${g(4)}·${g(4)}`;
+  }
+
+  const SEED_PEERS = [
+    { id: 'p1', name: 'Vetle Marken',     fp: '7c19·a4d2·83bb·f0e1', status: 'online',  last: 'Got the build, thanks.',          when: 'just now',  unread: 0 },
+    { id: 'p2', name: 'Anneliese R.',     fp: '0a6f·12c5·dd80·9ea4', status: 'idle',    last: 'Tomorrow at 9 your time?',         when: '14m',       unread: 2 },
+    { id: 'p3', name: 'K. Mistral',       fp: '4e22·b011·a9c7·3d5d', status: 'offline', last: 'Left the channel.',                when: '2d',        unread: 0 },
+  ];
+  const SEED_THREADS = {
+    p1: [
+      { from: 'them', t: 'Are you on?',                   at: '10:14' },
+      { from: 'me',   t: 'Yep. Direct line is up.',       at: '10:14' },
+      { from: 'them', t: 'Pushing the patched build now.', at: '10:16' },
+      { from: 'them', t: 'Got the build, thanks.',         at: '10:22' },
+    ],
+    p2: [
+      { from: 'me',   t: 'Call later?',                    at: '08:02' },
+      { from: 'them', t: 'Tomorrow at 9 your time?',       at: '08:05' },
+    ],
+    p3: [
+      { from: 'them', t: 'Left the channel.',              at: 'Mon' },
+    ],
+  };
+
+  function AppShell({ open, onClose }) {
+    const [code, setCode] = useState(() => genCode());
+    const [fp] = useState(() => genFingerprint());
+    const [copied, setCopied] = useState(false);
+    const [phase, setPhase] = useState('waiting'); // waiting | connecting | connected
+    const [view, setView] = useState('home'); // home | pair | chat
+    const [activePeerId, setActivePeerId] = useState(null);
+    const [peers, setPeers] = useState(SEED_PEERS);
+    const [threads, setThreads] = useState(SEED_THREADS);
+    const [draft, setDraft] = useState('');
+    const rootRef = useRef(null);
+    const exitRef = useRef(null);
+
+    // Reset pair state on entering pair view
+    useEffect(() => {
+      if (view === 'pair') {
+        setCode(genCode());
+        setCopied(false);
+        setPhase('waiting');
+      }
+    }, [view]);
+
+    // Lock body scroll + Esc + restore focus
+    useEffect(() => {
+      if (!open) return;
+      const prev = document.activeElement;
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => exitRef.current && exitRef.current.focus(), 30);
+      const onKey = (e) => {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          if (view !== 'home') setView('home');
+          else onClose();
+        }
+      };
+      window.addEventListener('keydown', onKey);
+      return () => {
+        window.removeEventListener('keydown', onKey);
+        document.body.style.overflow = prevOverflow;
+        if (prev && prev.focus) prev.focus();
+      };
+    }, [open, onClose, view]);
+
+    // Simulated pairing animation
+    useEffect(() => {
+      if (!open || view !== 'pair' || phase !== 'waiting') return;
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduce) return;
+      const t1 = setTimeout(() => setPhase('connecting'), 3800);
+      const t2 = setTimeout(() => {
+        setPhase('connected');
+        // Add a new peer to the sidebar when connected
+        const newPeer = {
+          id: 'np-' + Math.random().toString(36).slice(2, 8),
+          name: 'New peer',
+          fp: genFingerprint(),
+          status: 'online',
+          last: 'Just connected.',
+          when: 'now',
+          unread: 0,
+          fresh: true,
+        };
+        setPeers((ps) => ps.some(p => p.fresh) ? ps : [newPeer, ...ps]);
+      }, 5800);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
+    }, [open, view, phase, code]);
+
+    const copyCode = async () => {
+      try {
+        await navigator.clipboard.writeText(code);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1600);
+      } catch {}
+    };
+
+    const openChat = (id) => {
+      setActivePeerId(id);
+      setView('chat');
+      setPeers((ps) => ps.map(p => p.id === id ? { ...p, unread: 0 } : p));
+    };
+
+    const sendMessage = (e) => {
+      e.preventDefault();
+      if (!draft.trim() || !activePeerId) return;
+      const now = new Date();
+      const at = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+      setThreads((ts) => ({
+        ...ts,
+        [activePeerId]: [...(ts[activePeerId] || []), { from: 'me', t: draft.trim(), at }],
+      }));
+      setPeers((ps) => ps.map(p => p.id === activePeerId ? { ...p, last: draft.trim(), when: 'now' } : p));
+      setDraft('');
+    };
+
+    if (!open) return null;
+    const activePeer = peers.find(p => p.id === activePeerId);
+
+    return (
+      <div
+        ref={rootRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Straum app"
+        className="fixed inset-0 z-50 flex flex-col"
+        style={{ background: 'var(--bg)' }}
+      >
+        {/* App top bar */}
+        <header className="hairline-b flex items-center justify-between gap-4 px-5 h-14" style={{ background: 'var(--bg-elev)' }}>
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              type="button"
+              onClick={() => setView('home')}
+              className="flex items-center gap-2.5"
+              aria-label="Straum — go to app home"
+            >
+              <span aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                  <circle cx="5"  cy="12" r="2.2" fill="currentColor" />
+                  <circle cx="19" cy="12" r="2.2" fill="currentColor" />
+                  <line x1="7.5" y1="12" x2="16.5" y2="12" />
+                </svg>
+              </span>
+              <Wordmark size="md" />
+            </button>
+            <span aria-hidden="true" className="hidden md:inline" style={{ color: 'var(--fg-subtle)' }}>·</span>
+            <div className="hidden md:flex items-center gap-2 min-w-0">
+              <span className="badge !text-[10px] !py-[2px]">
+                <span className="dot" aria-hidden="true"></span>
+                <span>P2P · online</span>
+              </span>
+              <span className="font-mono text-[11px] truncate notranslate" translate="no" style={{ color: 'var(--fg-subtle)' }}>
+                you · {fp}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setView('pair')}
+              className="btn btn-ghost !py-2 !px-3 !text-[13px]"
+              aria-label="Pair a new peer"
+            >
+              <Icons.plus label="" />
+              <span className="hidden sm:inline">Pair a peer</span>
+            </button>
+            <button
+              ref={exitRef}
+              type="button"
+              onClick={onClose}
+              className="btn btn-ghost !py-2 !px-3 !text-[13px]"
+              aria-label="Exit Straum and return to the website"
+            >
+              Exit
+            </button>
+          </div>
+        </header>
+
+        {/* Workspace */}
+        <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] flex-1 min-h-0 overflow-hidden">
+          {/* Sidebar */}
+          <aside
+            className="hairline-b md:hairline-b-0 md:border-inline-end overflow-y-auto"
+            style={{ background: 'var(--bg)', borderInlineEnd: '1px solid var(--line)' }}
+            aria-label="Peers"
+          >
+            <div className="p-4">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[11px] uppercase tracking-[0.16em]" style={{ color: 'var(--fg-subtle)' }}>
+                  Peers · {peers.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setView('pair')}
+                  className="font-mono text-[11px] hover:underline"
+                  style={{ color: 'var(--accent)' }}
+                >
+                  + new
+                </button>
+              </div>
+              <ul className="mt-3 space-y-1">
+                {peers.map((p) => (
+                  <li key={p.id}>
+                    <button
+                      type="button"
+                      onClick={() => openChat(p.id)}
+                      className="w-full rounded-[10px] px-3 py-2.5 text-start hover:[background:var(--bg-elev)] transition-colors"
+                      style={{
+                        background: activePeerId === p.id && view === 'chat' ? 'var(--accent-soft)' : 'transparent',
+                      }}
+                      aria-current={activePeerId === p.id && view === 'chat' ? 'true' : undefined}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <PeerAvatar name={p.name} status={p.status} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="truncate text-[14px] font-medium">{p.name}</span>
+                            <span className="font-mono text-[10px] flex-none" style={{ color: 'var(--fg-subtle)' }}>{p.when}</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="truncate text-[12px]" style={{ color: 'var(--fg-muted)' }}>{p.last}</span>
+                            {p.unread > 0 && (
+                              <span
+                                className="flex-none font-mono text-[10px] rounded-full px-1.5 py-[1px]"
+                                style={{ background: 'var(--accent)', color: 'var(--bg)' }}
+                                aria-label={`${p.unread} unread`}
+                              >{p.unread}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="p-4 hairline-t">
+              <span className="font-mono text-[11px] uppercase tracking-[0.16em]" style={{ color: 'var(--fg-subtle)' }}>
+                This device
+              </span>
+              <div className="mt-3 rounded-[10px] p-3" style={{ background: 'var(--bg-elev)', border: '1px solid var(--line)' }}>
+                <div className="text-[13px] font-medium">Your fingerprint</div>
+                <div className="mt-1 font-mono text-[12px] notranslate break-all" translate="no" style={{ color: 'var(--fg-muted)' }}>{fp}</div>
+                <div className="mt-3 font-mono text-[10px]" style={{ color: 'var(--fg-subtle)' }}>
+                  Stored locally · never sent.
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          {/* Main */}
+          <section className="overflow-y-auto" aria-live="polite">
+            {view === 'home' && <AppHome peers={peers} onPair={() => setView('pair')} onOpenChat={openChat} fp={fp} />}
+            {view === 'pair' && (
+              <PairPanel
+                code={code}
+                copied={copied}
+                phase={phase}
+                onCopy={copyCode}
+                onRegen={() => { setCode(genCode()); setPhase('waiting'); }}
+                onCancel={() => setView('home')}
+                onEnter={() => setView('home')}
+              />
+            )}
+            {view === 'chat' && activePeer && (
+              <ChatView peer={activePeer} thread={threads[activePeer.id] || []} draft={draft} setDraft={setDraft} onSend={sendMessage} onBack={() => setView('home')} />
+            )}
+          </section>
+        </div>
+      </div>
+    );
+  }
+
+  function PeerAvatar({ name, status }) {
+    const initials = name.split(' ').filter(Boolean).slice(0, 2).map(s => s[0].toUpperCase()).join('');
+    const dot = status === 'online' ? 'var(--accent)' : status === 'idle' ? '#d4a017' : 'var(--fg-subtle)';
+    return (
+      <span className="relative inline-flex items-center justify-center flex-none" aria-hidden="true">
+        <span
+          className="inline-flex items-center justify-center w-9 h-9 rounded-full font-mono text-[12px]"
+          style={{ background: 'var(--bg-elev)', border: '1px solid var(--line-strong)', color: 'var(--fg)' }}
+        >{initials}</span>
+        <span
+          className="absolute -bottom-0 -end-0 w-2.5 h-2.5 rounded-full"
+          style={{ background: dot, boxShadow: '0 0 0 2px var(--bg)' }}
+        ></span>
+      </span>
+    );
+  }
+
+  function AppHome({ peers, onPair, onOpenChat, fp }) {
+    const online = peers.filter(p => p.status !== 'offline');
+    const greeting = (() => {
+      const h = new Date().getHours();
+      if (h < 5)  return 'Late night';
+      if (h < 12) return 'Good morning';
+      if (h < 18) return 'Good afternoon';
+      return 'Good evening';
+    })();
+    return (
+      <div className="mx-auto max-w-3xl px-6 md:px-10 py-10 md:py-14">
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--accent)' }}>
+          {greeting}
+        </p>
+        <h1 className="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">
+          Direct. <span style={{ color: 'var(--fg-muted)' }}>Nothing in between.</span>
+        </h1>
+        <p className="mt-3 text-[15px]" style={{ color: 'var(--fg-muted)', maxInlineSize: '52ch' }}>
+          {online.length > 0
+            ? `${online.length} peer${online.length === 1 ? '' : 's'} online. Open a thread, start a call, or pair someone new.`
+            : 'No peers online. Pair someone to start.'}
+        </p>
+
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <button
+            type="button"
+            onClick={onPair}
+            className="card p-5 text-start transition-colors hover:[border-color:var(--line-strong)]"
+          >
+            <div style={{ color: 'var(--accent)' }}><Icons.link label="" size={22} /></div>
+            <div className="mt-4 text-[16px] font-semibold tracking-tight">Pair a peer</div>
+            <div className="mt-1 text-[13px]" style={{ color: 'var(--fg-muted)' }}>
+              Generate a handshake code. Share it. They paste it.
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => online[0] && onOpenChat(online[0].id)}
+            disabled={!online.length}
+            className="card p-5 text-start transition-colors hover:[border-color:var(--line-strong)] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <div style={{ color: 'var(--accent)' }}><Icons.chat label="" size={22} /></div>
+            <div className="mt-4 text-[16px] font-semibold tracking-tight">Open a thread</div>
+            <div className="mt-1 text-[13px]" style={{ color: 'var(--fg-muted)' }}>
+              {online.length ? `Continue with ${online[0].name}.` : 'No one online yet.'}
+            </div>
+          </button>
+        </div>
+
+        <div className="mt-12">
+          <div className="flex items-center justify-between">
+            <h2 className="font-mono text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--fg-subtle)' }}>
+              Recent peers
+            </h2>
+            <span className="font-mono text-[11px]" style={{ color: 'var(--fg-subtle)' }}>{peers.length} known</span>
+          </div>
+          <ul className="mt-4 divide-y" style={{ borderColor: 'var(--line)' }}>
+            {peers.map((p) => (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  onClick={() => onOpenChat(p.id)}
+                  className="w-full py-3 px-1 flex items-center gap-4 text-start hover:[background:var(--bg-elev)] transition-colors rounded-md"
+                  style={{ borderBlockStart: '1px solid var(--line)' }}
+                >
+                  <PeerAvatar name={p.name} status={p.status} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-[14px] font-medium truncate">{p.name}</span>
+                      <span className="font-mono text-[10px]" style={{ color: 'var(--fg-subtle)' }}>{p.when}</span>
+                    </div>
+                    <div className="font-mono text-[11px] notranslate truncate" translate="no" style={{ color: 'var(--fg-subtle)' }}>
+                      {p.fp}
+                    </div>
+                  </div>
+                  <Icons.arrow label="" size={16} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="mt-12 hairline-t pt-6 font-mono text-[11px] flex flex-wrap items-center justify-between gap-3" style={{ color: 'var(--fg-subtle)' }}>
+          <span>This page is running locally · <span className="notranslate" translate="no">no-server · no-relay</span></span>
+          <span className="notranslate" translate="no">build · 2026.05.14</span>
+        </div>
+      </div>
+    );
+  }
+
+  function PairPanel({ code, copied, phase, onCopy, onRegen, onCancel, onEnter }) {
+    return (
+      <div className="mx-auto max-w-2xl px-6 md:px-10 py-10 md:py-14">
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--accent)' }}>
+          {phase === 'waiting'    && 'Step 01 · Share this code'}
+          {phase === 'connecting' && 'Step 02 · Connecting directly'}
+          {phase === 'connected'  && 'Step 03 · You’re connected'}
+        </p>
+        <h2 className="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">
+          {phase === 'waiting'    && 'Send this to your peer'}
+          {phase === 'connecting' && 'Negotiating direct line…'}
+          {phase === 'connected'  && 'Direct. Nothing in between.'}
+        </h2>
+        <p className="mt-3 text-[15px]" style={{ color: 'var(--fg-muted)', maxInlineSize: '52ch' }}>
+          {phase === 'waiting'    && 'They open Straum, paste the code, and you’re wired up. No accounts. No server in the path.'}
+          {phase === 'connecting' && 'Your devices are exchanging keys over WebRTC. Straum is no longer involved.'}
+          {phase === 'connected'  && 'Chat, call and share files. Closing this window ends the session immediately.'}
+        </p>
+
+        <div className="mt-8">
+          <div
+            className="flex items-center justify-between gap-3 rounded-[12px] border px-5 py-4"
+            style={{ borderColor: 'var(--line-strong)', background: 'var(--bg-elev)' }}
+          >
+            <div>
+              <div className="font-mono text-[10px] uppercase tracking-[0.18em]" style={{ color: 'var(--fg-subtle)' }}>
+                Handshake code
+              </div>
+              <div
+                className="mt-1.5 font-mono text-[26px] notranslate select-all"
+                translate="no"
+                aria-label={`Handshake code, ${code.split('').join(' ')}`}
+              >
+                {code}
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <button type="button" onClick={onCopy} className="btn btn-ghost !py-1.5 !px-2.5 !text-[12px]" aria-label="Copy handshake code">
+                {copied ? 'Copied' : 'Copy'}
+              </button>
+              <button type="button" onClick={onRegen} className="btn btn-ghost !py-1.5 !px-2.5 !text-[12px]" aria-label="Regenerate handshake code">
+                New
+              </button>
+            </div>
+          </div>
+
+          <ul className="mt-7 space-y-2.5">
+            <PhaseRow active={phase !== 'waiting'} done={phase === 'connecting' || phase === 'connected'} label="Code received by peer" />
+            <PhaseRow active={phase === 'connecting' || phase === 'connected'} done={phase === 'connected'} label="Keys exchanged · Signal Protocol" />
+            <PhaseRow active={phase === 'connected'} done={phase === 'connected'} label="Peer-to-peer channel open" />
+          </ul>
+        </div>
+
+        <div className="mt-10 flex items-center justify-between gap-3">
+          <p className="font-mono text-[11px]" style={{ color: 'var(--fg-subtle)' }}>
+            <span className="notranslate" translate="no">no-server</span> · <span className="notranslate" translate="no">no-relay</span>
+          </p>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={onCancel} className="btn btn-ghost !text-[13px]">Back</button>
+            <button type="button" onClick={onEnter} className="btn btn-primary !text-[13px]" disabled={phase !== 'connected'} style={{ opacity: phase !== 'connected' ? 0.5 : 1 }}>
+              {phase === 'connected' ? 'Done' : 'Waiting…'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function ChatView({ peer, thread, draft, setDraft, onSend, onBack }) {
+    const scrollRef = useRef(null);
+    useEffect(() => {
+      const el = scrollRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+    }, [thread.length]);
+    return (
+      <div className="flex flex-col h-full">
+        <div className="hairline-b px-5 py-3 flex items-center gap-3" style={{ background: 'var(--bg-elev)' }}>
+          <button type="button" onClick={onBack} className="btn btn-ghost !py-1.5 !px-2 md:hidden" aria-label="Back to home">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <PeerAvatar name={peer.name} status={peer.status} />
+          <div className="min-w-0 flex-1">
+            <div className="text-[14px] font-medium truncate">{peer.name}</div>
+            <div className="font-mono text-[11px] notranslate truncate" translate="no" style={{ color: 'var(--fg-subtle)' }}>{peer.fp} · {peer.status}</div>
+          </div>
+          <span className="badge !text-[10px] !py-[2px]" title="End-to-end encrypted">
+            <Icons.lock label="" size={12} />
+            <span>e2e</span>
+          </span>
+        </div>
+
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-6 space-y-2.5" style={{ background: 'var(--bg)' }}>
+          {thread.length === 0 ? (
+            <p className="text-center text-[13px]" style={{ color: 'var(--fg-subtle)' }}>No messages yet. Say hi.</p>
+          ) : (
+            thread.map((m, i) => (
+              <div key={i} className={`flex ${m.from === 'me' ? 'justify-end' : 'justify-start'}`}>
+                <div
+                  className="rounded-[14px] px-3.5 py-2 text-[14px] leading-snug"
+                  style={{
+                    maxInlineSize: '70%',
+                    background: m.from === 'me' ? 'var(--fg)' : 'var(--bg-elev)',
+                    color:      m.from === 'me' ? 'var(--bg)' : 'var(--fg)',
+                    border:     m.from === 'me' ? '1px solid var(--fg)' : '1px solid var(--line)',
+                  }}
+                >
+                  {m.t}
+                  <span className="ms-2 font-mono text-[10px] notranslate" translate="no"
+                        style={{ color: m.from === 'me' ? 'color-mix(in oklab, var(--bg) 70%, transparent)' : 'var(--fg-subtle)' }}>
+                    {m.at}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <form onSubmit={onSend} className="hairline-t px-4 py-3 flex items-center gap-2" style={{ background: 'var(--bg-elev)' }}>
+          <label htmlFor="msg" className="sr-only">Message</label>
+          <input
+            id="msg"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={`Message ${peer.name.split(' ')[0]}…`}
+            className="flex-1 bg-transparent px-3 py-2 rounded-md border text-[14px]"
+            style={{ borderColor: 'var(--line-strong)', color: 'var(--fg)' }}
+            autoComplete="off"
+          />
+          <button type="submit" className="btn btn-primary !text-[13px]" disabled={!draft.trim()} style={{ opacity: draft.trim() ? 1 : 0.5 }}>
+            Send
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+
+  function PhaseRow({ active, done, label }) {
+    return (
+      <li className="flex items-center gap-3 text-[13px]" style={{ color: active ? 'var(--fg)' : 'var(--fg-subtle)' }}>
+        <span
+          className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full"
+          style={{
+            border: '1px solid ' + (done ? 'var(--accent)' : 'var(--line-strong)'),
+            background: done ? 'var(--accent)' : 'transparent',
+            color: done ? 'var(--bg)' : 'var(--fg-subtle)',
+          }}
+          aria-hidden="true"
+        >
+          {done ? (
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="5 12 10 17 19 7" />
+            </svg>
+          ) : active ? (
+            <span className="block w-[6px] h-[6px] rounded-full" style={{ background: 'var(--accent)' }}></span>
+          ) : null}
+        </span>
+        <span>{label}</span>
+      </li>
+    );
+  }
+
+  // ---------- Header ----------
+  function Header({ theme, setTheme, onOpenApp }) {
+    return (
+      <header className="hairline-b sticky top-0 z-40" style={{ background: 'color-mix(in oklab, var(--bg) 88%, transparent)', backdropFilter: 'blur(8px)' }}>
+        <div className="mx-auto max-w-6xl px-6 h-16 flex items-center justify-between gap-6">
+          <a href="#top" className="flex items-center gap-2.5" aria-label="Straum — home">
+            <span aria-hidden="true" className="block">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                <circle cx="5" cy="12" r="2.2" fill="currentColor" />
+                <circle cx="19" cy="12" r="2.2" fill="currentColor" />
+                <line x1="7.5" y1="12" x2="16.5" y2="12" />
+              </svg>
+            </span>
+            <Wordmark size="md" />
+          </a>
+          <nav aria-label="Primary" className="hidden md:flex items-center gap-7 text-sm" style={{ color: 'var(--fg-muted)' }}>
+            <a href="#how" className="hover:[color:var(--fg)] transition-colors">How it works</a>
+            <a href="#features" className="hover:[color:var(--fg)] transition-colors">Features</a>
+            <a href="#security" className="hover:[color:var(--fg)] transition-colors">Security</a>
+            <a href="#open" className="hover:[color:var(--fg)] transition-colors">Open source</a>
+          </nav>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="btn btn-ghost !px-2.5 !py-2"
+              aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+              aria-pressed={theme === 'dark'}
+            >
+              {theme === 'dark' ? <Icons.sun label="" /> : <Icons.moon label="" />}
+            </button>
+            <button type="button" onClick={onOpenApp} className="btn btn-primary hidden sm:inline-flex">
+              Open app
+              <Icons.arrow label="" size={16} />
+            </button>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
+  // ---------- Hero ----------
+  function Hero({ onOpenApp }) {
+    return (
+      <section id="top" className="relative">
+        <div className="mx-auto max-w-6xl px-6 pt-20 pb-24 md:pt-28 md:pb-32">
+          <div className="reveal">
+            <span className="badge" role="status" aria-live="polite">
+              <span className="dot" aria-hidden="true"></span>
+              <span className="notranslate" translate="no">v0.4.2</span>
+              <span style={{ color: 'var(--fg-subtle)' }}>·</span>
+              Direct peer-to-peer
+            </span>
+          </div>
+
+          <div className="mt-10 reveal" style={{ '--reveal-delay': '60ms' }}>
+            <h1 className="wordmark notranslate text-[clamp(4.5rem,15vw,11rem)] leading-[0.82] tracking-tightest" translate="no">
+              Straum
+            </h1>
+          </div>
+
+          <div className="mt-8 md:mt-10 reveal" style={{ '--reveal-delay': '160ms' }}>
+            <p
+              className="text-[clamp(1.5rem,3.4vw,2.625rem)] font-medium leading-tight tracking-tight"
+              style={{ maxInlineSize: '22ch' }}
+            >
+              Direct.{' '}
+              <span style={{ color: 'var(--fg-muted)' }}>Nothing in between.</span>
+            </p>
+          </div>
+
+          <p className="mt-6 max-w-xl text-base md:text-lg reveal" style={{ color: 'var(--fg-muted)', '--reveal-delay': '240ms' }}>
+            Chat, call and share files device-to-device. No accounts. No servers in the path.
+            <span className="block mt-2 font-mono text-[0.78rem]" style={{ color: 'var(--fg-subtle)' }}>
+              <span translate="no" className="notranslate">straum</span>&nbsp;
+              <span aria-hidden="true">·</span>&nbsp;
+              Old Norse for <em>stream, current</em>
+            </span>
+          </p>
+
+          <div className="mt-10 flex flex-wrap items-center gap-3 reveal" style={{ '--reveal-delay': '320ms' }}>
+            <button type="button" onClick={onOpenApp} className="btn btn-primary">
+              Open app
+              <Icons.arrow label="" size={16} />
+            </button>
+            <a href="#how" className="btn btn-ghost">
+              How it works
+            </a>
+          </div>
+
+          <div className="mt-20 md:mt-24 reveal" style={{ '--reveal-delay': '420ms' }}>
+            <ConnectionSVG />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // ---------- Connection SVG ----------
+  function ConnectionSVG() {
+    return (
+      <figure className="w-full" aria-label="Two devices connected directly by a single line with data flowing between them">
+        <svg
+          viewBox="0 0 1200 220"
+          className="w-full h-auto"
+          role="img"
+          aria-hidden="false"
+        >
+          <title>A direct peer-to-peer connection between two devices</title>
+          <defs>
+            <linearGradient id="fade" x1="0" x2="1">
+              <stop offset="0%"  stopColor="currentColor" stopOpacity="0" />
+              <stop offset="15%" stopColor="currentColor" stopOpacity="1" />
+              <stop offset="85%" stopColor="currentColor" stopOpacity="1" />
+              <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+
+          {/* Left node */}
+          <g transform="translate(140, 110)" style={{ color: 'var(--fg)' }}>
+            <circle r="38" fill="none" stroke="currentColor" strokeWidth="1.25" opacity="0.25" />
+            <circle r="22" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            <circle r="6"  fill="currentColor" />
+            <text x="0" y="74" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="11"
+                  fill="currentColor" opacity="0.55" className="notranslate" translate="no">peer · A</text>
+          </g>
+
+          {/* Right node */}
+          <g transform="translate(1060, 110)" style={{ color: 'var(--fg)' }}>
+            <circle r="38" fill="none" stroke="currentColor" strokeWidth="1.25" opacity="0.25" />
+            <circle r="22" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            <circle r="6"  fill="currentColor" />
+            <text x="0" y="74" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="11"
+                  fill="currentColor" opacity="0.55" className="notranslate" translate="no">peer · B</text>
+          </g>
+
+          {/* The line */}
+          <g style={{ color: 'var(--fg-muted)' }}>
+            <line x1="178" y1="110" x2="1022" y2="110" stroke="url(#fade)" strokeWidth="1.25" opacity="0.45" />
+          </g>
+
+          {/* Flowing dashes */}
+          <g style={{ color: 'var(--accent)' }}>
+            <line className="flow-dash" x1="178" y1="110" x2="1022" y2="110"
+                  stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+          </g>
+
+          {/* Center label */}
+          <g transform="translate(600, 110)" style={{ color: 'var(--fg-subtle)' }}>
+            <rect x="-90" y="-20" width="180" height="40" rx="20"
+                  fill="var(--bg)" stroke="var(--line)" strokeWidth="1" />
+            <text x="0" y="4" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="12"
+                  fill="var(--fg-muted)" className="notranslate" translate="no">
+              <tspan>end-to-end · </tspan>
+              <tspan fill="var(--accent-ink)" style={{ fill: 'var(--accent)' }}>WebRTC</tspan>
+            </text>
+          </g>
+        </svg>
+      </figure>
+    );
+  }
+
+  // ---------- Trust Bar ----------
+  function TrustBar() {
+    const items = [
+      { Icon: Icons.server, title: 'No Servers',   note: 'Devices connect directly, peer-to-peer.' },
+      { Icon: Icons.user,   title: 'No Accounts',  note: 'No email. No phone. No sign-up.' },
+      { Icon: Icons.eye,    title: 'No Metadata',  note: 'No one logs who talks to whom.' },
+      { Icon: Icons.code,   title: 'Open Source',  note: 'Every line is on GitHub. Audit it.' },
+    ];
+    return (
+      <section aria-labelledby="trust-h" className="hairline-t hairline-b">
+        <h2 id="trust-h" className="sr-only">What Straum doesn't do</h2>
+        <div className="mx-auto max-w-6xl px-6 py-12 md:py-14">
+          <ul className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-10">
+            {items.map(({ Icon, title, note }, i) => (
+              <li key={title} className="reveal" style={{ '--reveal-delay': `${i * 70}ms` }}>
+                <div style={{ color: 'var(--accent)' }} className="mb-3">
+                  <Icon label="" size={22} />
+                </div>
+                <div className="font-medium text-[15px]">{title}</div>
+                <div className="font-mono text-[12px] mt-1.5 leading-relaxed" style={{ color: 'var(--fg-subtle)' }}>
+                  {note}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    );
+  }
+
+  // ---------- How It Works ----------
+  function HowItWorks() {
+    const steps = [
+      { Icon: Icons.share, n: '01', t: 'Share a code',       d: 'Generate a handshake code. Send it over WhatsApp or SMS.' },
+      { Icon: Icons.link,  n: '02', t: 'Connect directly',   d: 'Your devices talk to each other. Nothing goes through us.' },
+      { Icon: Icons.chat,  n: '03', t: 'Communicate freely', d: 'Chat, call, share files. All encrypted. All private.' },
+    ];
+    return (
+      <section id="how" aria-labelledby="how-h" className="py-24 md:py-32">
+        <div className="mx-auto max-w-6xl px-6">
+          <header className="max-w-2xl reveal">
+            <p className="font-mono text-[12px] uppercase tracking-[0.18em]" style={{ color: 'var(--accent)' }}>How it works</p>
+            <h2 id="how-h" className="mt-3 text-3xl md:text-4xl font-semibold tracking-tight" style={{ textWrap: 'balance' }}>
+              Three steps. One direct line.
+            </h2>
+          </header>
+
+          <ol className="mt-14 md:mt-20 grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-6 relative">
+            {/* Connecting line on desktop */}
+            <div className="hidden md:block absolute inset-x-0 top-[26px] h-px pointer-events-none"
+                 style={{ background: 'linear-gradient(to right, transparent, var(--line-strong) 12%, var(--line-strong) 88%, transparent)' }}
+                 aria-hidden="true" />
+            {steps.map(({ Icon, n, t, d }, i) => (
+              <li key={n} className="relative reveal" style={{ '--reveal-delay': `${i * 90}ms` }}>
+                <div className="flex items-center gap-3 md:block">
+                  <div
+                    className="inline-flex items-center justify-center w-[52px] h-[52px] rounded-full relative z-10"
+                    style={{ background: 'var(--bg)', border: '1px solid var(--line-strong)', color: 'var(--fg)' }}
+                    aria-hidden="true"
+                  >
+                    <Icon label="" size={22} />
+                  </div>
+                  <span className="font-mono text-[12px] md:block md:mt-4" style={{ color: 'var(--fg-subtle)' }}>
+                    Step {n}
+                  </span>
+                </div>
+                <h3 className="mt-3 md:mt-2 text-xl font-semibold tracking-tight">{t}</h3>
+                <p className="mt-2 text-[15px] leading-relaxed" style={{ color: 'var(--fg-muted)', maxInlineSize: '34ch' }}>
+                  {d}
+                </p>
+              </li>
+            ))}
+          </ol>
+
+          {/* Handshake mock */}
+          <div className="mt-16 md:mt-20 reveal">
+            <HandshakeMock />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  function HandshakeMock() {
+    return (
+      <div className="card overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-3 hairline-b" style={{ background: 'var(--bg)' }}>
+          <div className="flex items-center gap-2 font-mono text-[12px]" style={{ color: 'var(--fg-muted)' }}>
+            <span className="inline-block w-2 h-2 rounded-full" style={{ background: 'var(--accent)' }} aria-hidden="true"></span>
+            <span className="notranslate" translate="no">handshake.straum</span>
+          </div>
+          <div className="font-mono text-[11px]" style={{ color: 'var(--fg-subtle)' }}>
+            <span className="notranslate" translate="no">no-server.no-relay</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-0">
+          <PeerCard label="Your device" code="kjr-29f-tr8" you />
+          <div className="flex md:flex-col items-center justify-center px-6 py-4 md:py-0" aria-hidden="true">
+            <svg width="120" height="32" viewBox="0 0 120 32" className="md:rotate-0" style={{ color: 'var(--accent)' }}>
+              <line x1="6" y1="16" x2="114" y2="16" stroke="currentColor" strokeWidth="1.5" opacity="0.25" />
+              <line x1="6" y1="16" x2="114" y2="16" stroke="currentColor" strokeWidth="1.5"
+                    className="flow-dash" strokeDasharray="5 9" />
+              <circle cx="6" cy="16" r="2.5" fill="currentColor" />
+              <circle cx="114" cy="16" r="2.5" fill="currentColor" />
+            </svg>
+          </div>
+          <PeerCard label="Their device" code="qm2-x7n-9bc" />
+        </div>
+      </div>
+    );
+  }
+
+  function PeerCard({ label, code, you = false }) {
+    return (
+      <div className="p-6">
+        <div className="font-mono text-[11px] uppercase tracking-[0.16em]" style={{ color: 'var(--fg-subtle)' }}>
+          {label}
+        </div>
+        <div className="mt-3 font-mono text-2xl notranslate" translate="no" style={{ color: 'var(--fg)' }}>
+          {code}
+        </div>
+        <div className="mt-1 font-mono text-[11px]" style={{ color: 'var(--fg-subtle)' }}>
+          {you ? 'fingerprint · share this' : 'fingerprint · received'}
+        </div>
+      </div>
+    );
+  }
+
+  // ---------- Feature Grid ----------
+  function Features() {
+    const cards = [
+      { Icon: Icons.lock,  t: 'Encrypted Chat',     d: 'Signal-grade end-to-end encryption. Every message uses a fresh key.' },
+      { Icon: Icons.file,  t: 'P2P File Sharing',   d: 'Files move directly between devices over the torrent protocol.' },
+      { Icon: Icons.video, t: 'Video Calls',        d: 'Face to face, no middleman, no recording.' },
+      { Icon: Icons.bolt,  t: 'Zero Servers',       d: 'Even this page could be opened from a USB drive.' },
+    ];
+    return (
+      <section id="features" aria-labelledby="features-h" className="py-24 md:py-32 hairline-t">
+        <div className="mx-auto max-w-6xl px-6">
+          <header className="max-w-2xl reveal">
+            <p className="font-mono text-[12px] uppercase tracking-[0.18em]" style={{ color: 'var(--accent)' }}>What you get</p>
+            <h2 id="features-h" className="mt-3 text-3xl md:text-4xl font-semibold tracking-tight" style={{ textWrap: 'balance' }}>
+              Everything you'd expect. Without the middle.
+            </h2>
+          </header>
+
+          <div className="mt-14 md:mt-16 grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {cards.map(({ Icon, t, d }, i) => (
+              <article key={t} className="card p-8 reveal flex flex-col gap-5 transition-colors hover:[border-color:var(--line-strong)]"
+                       style={{ '--reveal-delay': `${i * 80}ms` }}>
+                <div className="flex items-center justify-between">
+                  <div style={{ color: 'var(--accent)' }}>
+                    <Icon label="" size={26} stroke={1.4} />
+                  </div>
+                  <span className="font-mono text-[11px] notranslate" translate="no" style={{ color: 'var(--fg-subtle)' }}>
+                    0{i + 1}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold tracking-tight">{t}</h3>
+                  <p className="mt-2 text-[15px] leading-relaxed" style={{ color: 'var(--fg-muted)', maxInlineSize: '38ch' }}>
+                    {d}
+                  </p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // ---------- Security accordion ----------
+  function Security() {
+    const items = [
+      {
+        q: 'What is WebRTC?',
+        a: 'WebRTC is a browser technology that lets two devices talk to each other directly — voice, video, files, data. The first hello goes through a tiny signalling step so the devices can find each other, then everything else flows peer to peer. Once the line is up, Straum is out of the picture.',
+      },
+      {
+        q: 'What is Signal Protocol?',
+        a: 'Signal Protocol is the encryption used by Signal, WhatsApp and a number of others. Each message gets a fresh key, so even if a key were ever exposed, the rest of the conversation stays sealed. Straum uses the same protocol for chat and key exchange.',
+      },
+      {
+        q: 'What does Perfect Forward Secrecy mean?',
+        a: 'It means past conversations stay private even if a key gets compromised tomorrow. Every message ratchets to a new key, so cracking one doesn\'t unlock the next. Old messages are forever sealed by keys that no longer exist anywhere.',
+      },
+      {
+        q: 'Can anyone intercept my calls?',
+        a: 'Calls are encrypted end to end on your device and decrypted on the other person\'s device. The bytes in between are unreadable to your network, your ISP, and to us. We can\'t even see who you\'re talking to — that connection is direct.',
+      },
+    ];
+    const [open, setOpen] = useState(0);
+    return (
+      <section id="security" aria-labelledby="sec-h" className="py-24 md:py-32 hairline-t">
+        <div className="mx-auto max-w-6xl px-6 grid grid-cols-1 md:grid-cols-[1fr_1.6fr] gap-12 md:gap-16">
+          <header className="reveal">
+            <p className="font-mono text-[12px] uppercase tracking-[0.18em]" style={{ color: 'var(--accent)' }}>Security</p>
+            <h2 id="sec-h" className="mt-3 text-3xl md:text-4xl font-semibold tracking-tight" style={{ textWrap: 'balance' }}>
+              Plain answers to fair questions.
+            </h2>
+            <p className="mt-4 text-[15px] leading-relaxed" style={{ color: 'var(--fg-muted)', maxInlineSize: '34ch' }}>
+              Trust the math, not us. Here's what's actually happening when you press call.
+            </p>
+          </header>
+
+          <div className="reveal">
+            <div role="region" aria-label="Security questions">
+              {items.map((it, i) => (
+                <details
+                  key={it.q}
+                  className="acc"
+                  open={open === i}
+                  onToggle={(e) => {
+                    if (e.target.open) setOpen(i);
+                    else if (open === i) setOpen(-1);
+                  }}
+                >
+                  <summary>
+                    <span>{it.q}</span>
+                    <span className="chev" aria-hidden="true">
+                      <Icons.plus label="" />
+                    </span>
+                  </summary>
+                  <div className="acc-body">
+                    {it.a}
+                  </div>
+                </details>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // ---------- Open source banner ----------
+  function OpenBanner() {
+    return (
+      <section id="open" aria-labelledby="open-h" className="hairline-t hairline-b" style={{ background: 'var(--bg-elev)' }}>
+        <div className="mx-auto max-w-6xl px-6 py-20 md:py-24">
+          <div className="grid grid-cols-1 md:grid-cols-[1.6fr_1fr] gap-10 items-end">
+            <div className="reveal">
+              <p className="font-mono text-[12px] uppercase tracking-[0.18em]" style={{ color: 'var(--accent)' }}>Open source</p>
+              <h2 id="open-h" className="mt-3 text-3xl md:text-5xl font-semibold tracking-tight" style={{ textWrap: 'balance' }}>
+                Fully open source. Read the code. Trust the math, not us.
+              </h2>
+              <p className="mt-5 text-[15px] md:text-base" style={{ color: 'var(--fg-muted)' }}>
+                No telemetry. No analytics. No ads.
+              </p>
+            </div>
+            <div className="reveal flex md:justify-end" style={{ '--reveal-delay': '120ms' }}>
+              <a
+                href="https://github.com/"
+                rel="noopener"
+                className="btn btn-primary !py-3 !px-5"
+                aria-label="View Straum on GitHub"
+              >
+                <Icons.github label="" size={18} />
+                View on GitHub
+                <Icons.arrow label="" size={16} />
+              </a>
+            </div>
+          </div>
+
+          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              { k: 'license',    v: 'AGPL-3.0' },
+              { k: 'audited',    v: '2026-02 · Cure53' },
+              { k: 'reproducible', v: 'sha256 verified' },
+            ].map(({ k, v }, i) => (
+              <div key={k} className="card px-5 py-4 reveal flex items-center justify-between" style={{ '--reveal-delay': `${i * 70}ms` }}>
+                <span className="font-mono text-[11px] uppercase tracking-[0.16em]" style={{ color: 'var(--fg-subtle)' }}>{k}</span>
+                <span className="font-mono text-[13px] notranslate" translate="no">{v}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // ---------- Footer ----------
+  function Footer() {
+    const langs = [
+      { code: 'en', name: 'English' },
+      { code: 'de', name: 'Deutsch' },
+      { code: 'fi', name: 'Suomi' },
+      { code: 'es', name: 'Español' },
+      { code: 'fr', name: 'Français' },
+      { code: 'ja', name: '日本語' },
+      { code: 'ar', name: 'العربية' },
+    ];
+    const onLang = (e) => {
+      const v = e.target.value;
+      try {
+        const url = new URL(window.location.href);
+        if (v === 'en') {
+          document.documentElement.lang = 'en';
+          document.documentElement.dir = 'ltr';
+          url.searchParams.delete('hl');
+        } else {
+          document.documentElement.lang = v;
+          document.documentElement.dir = (v === 'ar' || v === 'he' || v === 'fa') ? 'rtl' : 'ltr';
+          url.searchParams.set('hl', v);
+        }
+        history.replaceState(null, '', url.toString());
+        const sel = document.querySelector('.goog-te-combo');
+        if (sel) {
+          sel.value = v === 'en' ? '' : v;
+          sel.dispatchEvent(new Event('change'));
+        }
+      } catch {}
+    };
+    return (
+      <footer className="py-16 md:py-20">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr_1fr_1fr] gap-10">
+            <div>
+              <Wordmark size="md" />
+              <p className="mt-3 text-[15px]" style={{ color: 'var(--fg-muted)' }}>
+                Direct. Nothing in between.
+              </p>
+              <p className="mt-6 font-mono text-[12px]" style={{ color: 'var(--fg-subtle)' }}>
+                Built with{' '}
+                <span className="notranslate" translate="no">WebRTC</span>{' '}+{' '}
+                <span className="notranslate" translate="no">Signal Protocol</span>{' '}+{' '}
+                <span className="notranslate" translate="no">WebTorrent</span>
+              </p>
+            </div>
+
+            <FooterCol title="Product" items={[
+              { l: 'How it works', h: '#how' },
+              { l: 'Features', h: '#features' },
+              { l: 'Security', h: '#security' },
+            ]} />
+            <FooterCol title="Project" items={[
+              { l: 'GitHub', h: 'https://github.com/' },
+              { l: 'Privacy', h: '#privacy' },
+              { l: 'Changelog', h: '#changelog' },
+            ]} />
+
+            <div>
+              <div className="text-[13px] font-medium mb-3">Language</div>
+              <label className="sr-only" htmlFor="lang">Choose language</label>
+              <div className="flex items-center gap-2">
+                <span aria-hidden="true" style={{ color: 'var(--fg-subtle)' }}>
+                  <Icons.globe label="" size={18} />
+                </span>
+                <select
+                  id="lang"
+                  onChange={onLang}
+                  defaultValue="en"
+                  className="bg-transparent text-[14px] font-mono py-1.5 pe-6 ps-2 border rounded-md"
+                  style={{ borderColor: 'var(--line-strong)', color: 'var(--fg)' }}
+                  aria-label="Select language for translation"
+                >
+                  {langs.map(l => (
+                    <option key={l.code} value={l.code}>{l.name}</option>
+                  ))}
+                </select>
+              </div>
+              <p className="mt-3 font-mono text-[11px]" style={{ color: 'var(--fg-subtle)' }}>
+                Translation via your browser. No tracking.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-16 pt-6 hairline-t flex flex-wrap items-center justify-between gap-3">
+            <p className="font-mono text-[11px]" style={{ color: 'var(--fg-subtle)' }}>
+              <span className="notranslate" translate="no">© 2026 Straum</span>{' '}· No cookies, no analytics.
+            </p>
+            <div className="flex items-center gap-4 font-mono text-[11px]" style={{ color: 'var(--fg-subtle)' }}>
+              <span className="badge !text-[10px] !py-[2px]">
+                <span className="dot" aria-hidden="true"></span>
+                <span className="notranslate" translate="no">build · 2026.05.14</span>
+              </span>
+            </div>
+          </div>
+        </div>
+        {/* Google Translate widget mount (hidden chrome, used as a delegate) */}
+        <div id="google_translate_element" aria-hidden="true" style={{ position: 'absolute', left: '-9999px', top: 0 }}></div>
+      </footer>
+    );
+  }
+
+  function FooterCol({ title, items }) {
+    return (
+      <div>
+        <div className="text-[13px] font-medium mb-3">{title}</div>
+        <ul className="space-y-2 text-[14px]" style={{ color: 'var(--fg-muted)' }}>
+          {items.map(it => (
+            <li key={it.l}><a href={it.h} className="hover:[color:var(--fg)] transition-colors">{it.l}</a></li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
+  // ---------- App ----------
+  function App() {
+    const [theme, setTheme] = useTheme();
+    const [appOpen, setAppOpen] = useState(false);
+    useReveal();
+    return (
+      <>
+        <Header theme={theme} setTheme={setTheme} onOpenApp={() => setAppOpen(true)} />
+        <main id="main">
+          <Hero onOpenApp={() => setAppOpen(true)} />
+          <TrustBar />
+          <HowItWorks />
+          <Features />
+          <Security />
+          <OpenBanner />
+        </main>
+        <Footer />
+        <AppShell open={appOpen} onClose={() => setAppOpen(false)} />
+      </>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+
+  <!-- Google Translate widget loader (optional, progressive enhancement) -->
+  <script>
+    // Lazy-init only if user picks a non-English language; avoid loading otherwise (no tracking).
+    function loadGoogleTranslate() {
+      if (window.__gtLoaded) return;
+      window.__gtLoaded = true;
+      window.googleTranslateElementInit = function () {
+        new google.translate.TranslateElement(
+          { pageLanguage: 'en', autoDisplay: false },
+          'google_translate_element'
+        );
+      };
+      const s = document.createElement('script');
+      s.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+      s.async = true;
+      document.head.appendChild(s);
+    }
+    document.addEventListener('change', (e) => {
+      if (e.target && e.target.id === 'lang' && e.target.value !== 'en') loadGoogleTranslate();
+    }, { capture: true });
+  </script>
+</body>
+</html>
