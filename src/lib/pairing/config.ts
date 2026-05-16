@@ -1,0 +1,2 @@
+/** STUN helps peers find each other across NAT; no Straum server involved. */
+export const ICE_SERVERS: RTCIceServer[] = [{ urls: 'stun:stun.l.google.com:19302' }]

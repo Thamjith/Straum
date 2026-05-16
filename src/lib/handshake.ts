@@ -4,9 +4,18 @@ export const HANDSHAKE_CODE_REGEX = new RegExp(
   `^[${ALPHABET}]{3}-[${ALPHABET}]{3}-[${ALPHABET}]{3}$`,
 )
 
-/** Payload encoded in the QR code (scannable by the other peer). */
-export function handshakeQrPayload(code: string): string {
-  return `straum://pair/${code}`
+/** Human-readable label embedded in the offer (shown in UI). */
+export function handshakeDisplayCode(code: string): string {
+  return code
+}
+
+/** Extract base64url bundle from a scanned link or pasted payload. */
+export function parsePairPayload(raw: string): string | null {
+  const s = raw.trim()
+  const hashMatch = s.match(/straum:\/\/pair#([A-Za-z0-9_-]+)/i)
+  if (hashMatch) return hashMatch[1]
+  if (/^[A-Za-z0-9_-]{40,}$/.test(s)) return s
+  return null
 }
 
 /** Normalize pasted text or scanned URL into `xxx-xxx-xxx`, or null if invalid. */

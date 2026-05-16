@@ -13,13 +13,25 @@ interface PairPanelProps {
   onPairModeChange: (mode: PairMode) => void
   code: string
   copied: boolean
+  answerCopied: boolean
   phase: Phase
-  acceptInput: string
+  keysExchanged: boolean
+  peerJoined: boolean
+  connectionError: string | null
+  offerLink: string | null
+  answerLink: string | null
+  offerLoading: boolean
+  offerInput: string
+  responseInput: string
   acceptError: string | null
-  onAcceptInputChange: (value: string) => void
-  onCopy: () => void
+  responseError: string | null
+  onOfferInputChange: (value: string) => void
+  onResponseInputChange: (value: string) => void
+  onCopyOffer: () => void
+  onCopyAnswer: () => void
   onRegen: () => void
-  onAccept: () => void
+  onAcceptOffer: () => void
+  onApplyAnswer: () => void
   onCancel: () => void
   onEnter: () => void
 }
@@ -29,13 +41,25 @@ export function PairPanel({
   onPairModeChange,
   code,
   copied,
+  answerCopied,
   phase,
-  acceptInput,
+  keysExchanged,
+  peerJoined,
+  connectionError,
+  offerLink,
+  answerLink,
+  offerLoading,
+  offerInput,
+  responseInput,
   acceptError,
-  onAcceptInputChange,
-  onCopy,
+  responseError,
+  onOfferInputChange,
+  onResponseInputChange,
+  onCopyOffer,
+  onCopyAnswer,
   onRegen,
-  onAccept,
+  onAcceptOffer,
+  onApplyAnswer,
   onCancel,
   onEnter,
 }: PairPanelProps) {
@@ -57,52 +81,87 @@ export function PairPanel({
       </div>
 
       <p className="mt-6 font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--accent)]">
-        {isCreate && phase === 'waiting' && 'Step 01 · Share this code'}
-        {!isCreate && phase === 'waiting' && 'Step 01 · Enter their code'}
+        {isCreate && phase === 'waiting' && 'Step 01 · Share offer'}
+        {!isCreate && !answerLink && phase === 'waiting' && 'Step 01 · Paste their offer'}
+        {!isCreate && answerLink && phase !== 'connected' && 'Step 02 · Send your answer'}
+        {isCreate && answerLink === null && peerJoined && phase !== 'connected' && 'Step 02 · Paste their answer'}
         {phase === 'connecting' && 'Step 02 · Connecting directly'}
         {phase === 'connected' && 'Step 03 · You’re connected'}
       </p>
       <h2 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">
-        {isCreate && phase === 'waiting' && 'Send this to your peer'}
-        {!isCreate && phase === 'waiting' && 'Paste or scan their code'}
+        {isCreate && phase === 'waiting' && (offerLoading ? 'Preparing direct line…' : 'Send this to your peer')}
+        {!isCreate && !answerLink && 'Paste or scan their offer'}
+        {!isCreate && answerLink && phase !== 'connected' && 'Send this answer back'}
+        {isCreate && peerJoined && phase !== 'connected' && 'Paste their answer'}
         {phase === 'connecting' && 'Negotiating direct line…'}
         {phase === 'connected' && 'Direct. Nothing in between.'}
       </h2>
       <p className="mt-3 max-w-[52ch] text-[15px] text-[var(--fg-muted)]">
-        {isCreate && phase === 'waiting' &&
-          'Share the code or QR. They open Straum, choose Accept code, and connect. No accounts. No server in the path.'}
-        {!isCreate && phase === 'waiting' &&
-          'Paste the handshake code from your peer, or scan their QR in Accept code on their device.'}
-        {phase === 'connecting' && 'Your devices are exchanging keys over WebRTC. Straum is no longer involved.'}
-        {phase === 'connected' && 'Chat, call and share files. Closing this window ends the session immediately.'}
+        {isCreate &&
+          phase === 'waiting' &&
+          'Share the QR or link. Your peer accepts it on their device and sends an answer back — over any channel you choose. No Straum server.'}
+        {!isCreate &&
+          !answerLink &&
+          'Paste the offer link from your peer (or scan their QR). Straum never sees it.'}
+        {!isCreate &&
+          answerLink &&
+          phase !== 'connected' &&
+          'Copy or show this answer QR to your peer. Once they apply it, your devices connect directly.'}
+        {isCreate &&
+          peerJoined &&
+          phase !== 'connected' &&
+          'Paste the answer link your peer generated. After that, WebRTC runs device to device.'}
+        {phase === 'connecting' && 'Your devices are exchanging keys and opening a WebRTC data channel.'}
+        {phase === 'connected' && 'Chat and data flow peer to peer. Closing this tab ends the session.'}
       </p>
 
       <div className="mt-8">
         {isCreate ? (
-          <CreateSection code={code} copied={copied} phase={phase} onCopy={onCopy} onRegen={onRegen} />
+          <CreateSection
+            code={code}
+            copied={copied}
+            phase={phase}
+            offerLink={offerLink}
+            offerLoading={offerLoading}
+            responseInput={responseInput}
+            responseError={responseError}
+            onCopyOffer={onCopyOffer}
+            onRegen={onRegen}
+            onResponseInputChange={onResponseInputChange}
+            onApplyAnswer={onApplyAnswer}
+          />
         ) : (
           <AcceptSection
-            acceptInput={acceptInput}
+            offerInput={offerInput}
             acceptError={acceptError}
             phase={phase}
-            onAcceptInputChange={onAcceptInputChange}
-            onAccept={onAccept}
+            answerLink={answerLink}
+            answerCopied={answerCopied}
+            onOfferInputChange={onOfferInputChange}
+            onAcceptOffer={onAcceptOffer}
+            onCopyAnswer={onCopyAnswer}
           />
         )}
 
         <ul className="mt-7 space-y-2.5">
           <PhaseRow
-            active={phase !== 'waiting'}
-            done={phase === 'connecting' || phase === 'connected'}
-            label={isCreate ? 'Code received by peer' : 'Code submitted'}
+            active={Boolean(offerLink) || (!isCreate && peerJoined) || phase !== 'waiting'}
+            done={Boolean(offerLink) && (isCreate ? responseInput.length > 0 : peerJoined) || phase === 'connecting' || phase === 'connected'}
+            label={isCreate ? 'Offer shared with peer' : 'Offer received'}
           />
           <PhaseRow
-            active={phase === 'connecting' || phase === 'connected'}
-            done={phase === 'connected'}
-            label="Keys exchanged · Signal Protocol"
+            active={keysExchanged || phase === 'connected'}
+            done={keysExchanged}
+            label="Keys exchanged · ECDH (P-256)"
           />
           <PhaseRow active={phase === 'connected'} done={phase === 'connected'} label="Peer-to-peer channel open" />
         </ul>
+
+        {connectionError && (
+          <p className="mt-4 text-[13px] text-red-600 dark:text-red-400" role="alert">
+            {connectionError}
+          </p>
+        )}
       </div>
 
       <div className="mt-10 flex items-center justify-between gap-3">
@@ -157,93 +216,189 @@ function CreateSection({
   code,
   copied,
   phase,
-  onCopy,
+  offerLink,
+  offerLoading,
+  responseInput,
+  responseError,
+  onCopyOffer,
   onRegen,
+  onResponseInputChange,
+  onApplyAnswer,
 }: {
   code: string
   copied: boolean
   phase: Phase
-  onCopy: () => void
+  offerLink: string | null
+  offerLoading: boolean
+  responseInput: string
+  responseError: string | null
+  onCopyOffer: () => void
   onRegen: () => void
+  onResponseInputChange: (value: string) => void
+  onApplyAnswer: () => void
 }) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1 rounded-xl border border-[var(--line-strong)] bg-[var(--bg-elev)] px-5 py-4">
-          <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--fg-subtle)]">Handshake code</div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--fg-subtle)]">
+            Session label
+          </div>
           <div
             className="mt-1.5 select-all font-mono text-[26px] notranslate"
             translate="no"
-            aria-label={`Handshake code, ${code.split('').join(' ')}`}
+            aria-label={`Session label, ${code.split('').join(' ')}`}
           >
             {code}
           </div>
           <div className="mt-4 flex flex-wrap gap-1.5">
-            <Button variant="outline" size="sm" onClick={onCopy} aria-label="Copy handshake code">
-              {copied ? 'Copied' : 'Copy'}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onCopyOffer}
+              disabled={!offerLink}
+              aria-label="Copy offer link"
+            >
+              {copied ? 'Copied' : 'Copy offer link'}
             </Button>
-            <Button variant="outline" size="sm" onClick={onRegen} disabled={phase !== 'waiting'} aria-label="Regenerate handshake code">
+            <Button variant="outline" size="sm" onClick={onRegen} disabled={offerLoading} aria-label="New session">
               New
             </Button>
           </div>
+          {offerLoading && (
+            <p className="mt-3 text-[13px] text-[var(--fg-muted)]">Preparing offer link (WebRTC + encryption keys)…</p>
+          )}
+          {offerLink && (
+            <div className="mt-4">
+              <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--fg-subtle)]">
+                Offer link — send this to your peer
+              </label>
+              <Input
+                readOnly
+                value={offerLink}
+                className="mt-2 font-mono text-xs"
+                onFocus={(e) => e.target.select()}
+                aria-label="Offer link"
+              />
+            </div>
+          )}
         </div>
-        {phase === 'waiting' && (
+        {offerLink && (
           <div className="flex shrink-0 justify-center sm:justify-end">
-            <HandshakeQr code={code} />
+            <HandshakeQr value={offerLink} label="Peer scans to accept" />
           </div>
         )}
       </div>
+
+      {offerLink && (
+        <form
+          className="rounded-xl border border-[var(--line-strong)] bg-[var(--bg-elev)] px-5 py-4"
+          onSubmit={(e) => {
+            e.preventDefault()
+            onApplyAnswer()
+          }}
+        >
+          <label htmlFor="peer-answer" className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--fg-subtle)]">
+            Peer&apos;s answer link
+          </label>
+          <p className="mt-1 text-[13px] text-[var(--fg-muted)]">
+            After they accept your offer, paste the answer link they send back.
+          </p>
+          <Input
+            id="peer-answer"
+            value={responseInput}
+            onChange={(e) => onResponseInputChange(e.target.value)}
+            placeholder="straum://pair#…"
+            className="mt-2 font-mono text-sm"
+            autoComplete="off"
+            spellCheck={false}
+            disabled={phase === 'connected'}
+            aria-invalid={responseError ? true : undefined}
+          />
+          {responseError && (
+            <p className="mt-2 text-[13px] text-red-600 dark:text-red-400" role="alert">
+              {responseError}
+            </p>
+          )}
+          <Button type="submit" className="mt-4" size="sm" disabled={phase === 'connected' || !responseInput.trim()}>
+            Apply answer
+          </Button>
+        </form>
+      )}
     </div>
   )
 }
 
 function AcceptSection({
-  acceptInput,
+  offerInput,
   acceptError,
   phase,
-  onAcceptInputChange,
-  onAccept,
+  answerLink,
+  answerCopied,
+  onOfferInputChange,
+  onAcceptOffer,
+  onCopyAnswer,
 }: {
-  acceptInput: string
+  offerInput: string
   acceptError: string | null
   phase: Phase
-  onAcceptInputChange: (value: string) => void
-  onAccept: () => void
+  answerLink: string | null
+  answerCopied: boolean
+  onOfferInputChange: (value: string) => void
+  onAcceptOffer: () => void
+  onCopyAnswer: () => void
 }) {
+  if (answerLink) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <HandshakeQr value={answerLink} label="Host scans or you copy the link" />
+          <div className="rounded-xl border border-[var(--line-strong)] bg-[var(--bg-elev)] px-5 py-4">
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--fg-subtle)]">Answer link</p>
+            <Button variant="outline" size="sm" className="mt-3" onClick={onCopyAnswer}>
+              {answerCopied ? 'Copied' : 'Copy answer link'}
+            </Button>
+            <p className="mt-3 max-w-[40ch] text-[13px] text-[var(--fg-muted)]">
+              Send this to the peer who shared the offer. When they paste it, your devices connect directly.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <form
       className="rounded-xl border border-[var(--line-strong)] bg-[var(--bg-elev)] px-5 py-4"
       onSubmit={(e) => {
         e.preventDefault()
-        onAccept()
+        onAcceptOffer()
       }}
     >
-      <label htmlFor="accept-code" className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--fg-subtle)]">
-        Peer&apos;s handshake code
+      <label htmlFor="accept-offer" className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--fg-subtle)]">
+        Peer&apos;s offer link
       </label>
       <Input
-        id="accept-code"
-        value={acceptInput}
-        onChange={(e) => onAcceptInputChange(e.target.value)}
-        placeholder="kjr-29f-tr8"
-        className="mt-2 font-mono text-lg tracking-wide"
+        id="accept-offer"
+        value={offerInput}
+        onChange={(e) => onOfferInputChange(e.target.value)}
+        placeholder="straum://pair#…"
+        className="mt-2 font-mono text-sm"
         autoComplete="off"
         spellCheck={false}
         disabled={phase !== 'waiting'}
         aria-invalid={acceptError ? true : undefined}
-        aria-describedby={acceptError ? 'accept-code-error' : undefined}
       />
       {acceptError && (
-        <p id="accept-code-error" className="mt-2 text-[13px] text-red-600 dark:text-red-400" role="alert">
+        <p className="mt-2 text-[13px] text-red-600 dark:text-red-400" role="alert">
           {acceptError}
         </p>
       )}
       <p className="mt-2 text-[13px] text-[var(--fg-muted)]">
-        Format: three groups of three characters, e.g. <span className="font-mono notranslate" translate="no">abc-def-ghi</span>
-        . Paste the full <span className="font-mono notranslate" translate="no">straum://pair/…</span> link from a QR scan.
+        Scan their offer QR or paste the full <span className="font-mono notranslate">straum://pair#…</span> link.
       </p>
-      <Button type="submit" className="mt-4" size="sm" disabled={phase !== 'waiting' || !acceptInput.trim()}>
-        Connect
+      <Button type="submit" className="mt-4" size="sm" disabled={phase !== 'waiting' || !offerInput.trim()}>
+        Generate answer
       </Button>
     </form>
   )
