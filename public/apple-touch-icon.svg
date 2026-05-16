@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" role="img" aria-label="Straum">
+  <title>Straum</title>
+  <rect width="180" height="180" rx="40" fill="#0a0a0a" />
+  <circle cx="50" cy="90" r="18" fill="#6ec4bc" />
+  <circle cx="130" cy="90" r="18" fill="#6ec4bc" />
+  <line x1="68" y1="90" x2="112" y2="90" stroke="#6ec4bc" stroke-width="12" stroke-linecap="round" />
+</svg>
