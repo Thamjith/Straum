@@ -1,4 +1,6 @@
+import { Link } from 'react-router-dom'
 import { Badge, BadgeDot } from '@/components/ui/badge'
+import { paths } from '@/lib/routes'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Icons } from '@/components/icons'
 import { Wordmark } from '@/components/wordmark'
@@ -54,16 +56,22 @@ function onLang(value: string) {
   }
 }
 
-function FooterCol({ title, items }: { title: string; items: { l: string; h: string }[] }) {
+function FooterCol({ title, items }: { title: string; items: { l: string; to: string }[] }) {
   return (
     <div>
       <div className="mb-3 text-[13px] font-medium">{title}</div>
       <ul className="space-y-2 text-[14px] text-[var(--fg-muted)]">
         {items.map((it) => (
           <li key={it.l}>
-            <a href={it.h} className="transition-colors hover:text-foreground">
-              {it.l}
-            </a>
+            {it.to.startsWith('http') ? (
+              <a href={it.to} className="transition-colors hover:text-foreground" rel="noopener noreferrer">
+                {it.l}
+              </a>
+            ) : (
+              <Link to={it.to} className="transition-colors hover:text-foreground">
+                {it.l}
+              </Link>
+            )}
           </li>
         ))}
       </ul>
@@ -88,17 +96,17 @@ export function Footer() {
           <FooterCol
             title="Product"
             items={[
-              { l: 'How it works', h: '#how' },
-              { l: 'Features', h: '#features' },
-              { l: 'Security', h: '#security' },
+              { l: 'How it works', to: paths.howItWorks },
+              { l: 'Features', to: paths.features },
+              { l: 'Security', to: paths.security },
             ]}
           />
           <FooterCol
             title="Project"
             items={[
-              { l: 'GitHub', h: 'https://github.com/' },
-              { l: 'Privacy', h: '#privacy' },
-              { l: 'Changelog', h: '#changelog' },
+              { l: 'GitHub', to: 'https://github.com/' },
+              { l: 'Privacy', to: paths.home },
+              { l: 'Changelog', to: paths.home },
             ]}
           />
           <div>

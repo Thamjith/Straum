@@ -1,13 +1,11 @@
+import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge, BadgeDot } from '@/components/ui/badge'
 import { Icons } from '@/components/icons'
+import { paths } from '@/lib/routes'
 import { ConnectionSVG } from './connection-svg'
 
-interface HeroProps {
-  onOpenApp: () => void
-}
-
-export function Hero({ onOpenApp }: HeroProps) {
+export function Hero() {
   return (
     <section id="top" className="relative">
       <div className="mx-auto max-w-6xl px-6 pt-20 pb-24 md:pt-28 md:pb-32">
@@ -48,12 +46,14 @@ export function Hero({ onOpenApp }: HeroProps) {
         </p>
 
         <div className="reveal mt-10 flex flex-wrap items-center gap-3" style={{ ['--reveal-delay' as string]: '320ms' }}>
-          <Button onClick={onOpenApp}>
-            Open app
-            <Icons.arrow size={16} />
+          <Button asChild>
+            <Link to={paths.app}>
+              Open app
+              <Icons.arrow size={16} />
+            </Link>
           </Button>
           <Button variant="outline" asChild>
-            <a href="#how">How it works</a>
+            <Link to={paths.howItWorks}>How it works</Link>
           </Button>
         </div>
 

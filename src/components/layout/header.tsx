@@ -1,34 +1,39 @@
+import { Link, NavLink } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Icons, StraumLogo } from '@/components/icons'
 import { Wordmark } from '@/components/wordmark'
+import { paths } from '@/lib/routes'
+import { cn } from '@/lib/utils'
 
 interface HeaderProps {
   theme: 'light' | 'dark'
   onToggleTheme: () => void
-  onOpenApp: () => void
 }
 
-export function Header({ theme, onToggleTheme, onOpenApp }: HeaderProps) {
+const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+  cn('transition-colors hover:text-foreground', isActive && 'text-foreground')
+
+export function Header({ theme, onToggleTheme }: HeaderProps) {
   return (
     <header className="hairline-b sticky top-0 z-40 bg-background/88 backdrop-blur-sm">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-6">
-        <a href="#top" className="flex items-center gap-2.5" aria-label="Straum — home">
+        <Link to={paths.home} className="flex items-center gap-2.5" aria-label="Straum — home">
           <StraumLogo />
           <Wordmark size="md" />
-        </a>
+        </Link>
         <nav aria-label="Primary" className="hidden items-center gap-7 text-sm text-[var(--fg-muted)] md:flex">
-          <a href="#how" className="transition-colors hover:text-foreground">
+          <NavLink to={paths.howItWorks} className={navLinkClass}>
             How it works
-          </a>
-          <a href="#features" className="transition-colors hover:text-foreground">
+          </NavLink>
+          <NavLink to={paths.features} className={navLinkClass}>
             Features
-          </a>
-          <a href="#security" className="transition-colors hover:text-foreground">
+          </NavLink>
+          <NavLink to={paths.security} className={navLinkClass}>
             Security
-          </a>
-          <a href="#open" className="transition-colors hover:text-foreground">
+          </NavLink>
+          <NavLink to={paths.open} className={navLinkClass}>
             Open source
-          </a>
+          </NavLink>
         </nav>
         <div className="flex items-center gap-2">
           <Button
@@ -40,9 +45,11 @@ export function Header({ theme, onToggleTheme, onOpenApp }: HeaderProps) {
           >
             {theme === 'dark' ? <Icons.sun /> : <Icons.moon />}
           </Button>
-          <Button onClick={onOpenApp} className="hidden sm:inline-flex">
-            Open app
-            <Icons.arrow size={16} />
+          <Button asChild className="hidden sm:inline-flex">
+            <Link to={paths.app}>
+              Open app
+              <Icons.arrow size={16} />
+            </Link>
           </Button>
         </div>
       </div>
